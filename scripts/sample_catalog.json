@@ -1,0 +1,47 @@
+[
+  {
+    "sku": "JKT-001",
+    "title": "Men's Waterproof Hiking Jacket",
+    "description": "Lightweight, breathable, fully waterproof shell jacket for hiking and backpacking.",
+    "brand": "TrailPeak",
+    "category": "Outerwear",
+    "price": 129.99,
+    "attributes": {"color": "forest green", "size_range": "S-XXL"}
+  },
+  {
+    "sku": "JKT-002",
+    "title": "Women's Insulated Winter Parka",
+    "description": "Warm down-insulated parka rated for sub-zero temperatures.",
+    "brand": "Northgale",
+    "category": "Outerwear",
+    "price": 199.99,
+    "attributes": {"color": "black", "size_range": "XS-XL"}
+  },
+  {
+    "sku": "SHO-010",
+    "title": "Trail Running Shoes",
+    "description": "Grippy outsole, breathable mesh upper, ideal for muddy or wet trails.",
+    "brand": "TrailPeak",
+    "category": "Footwear",
+    "price": 89.99,
+    "attributes": {"color": "grey/orange"}
+  },
+  {
+    "sku": "SHO-011",
+    "title": "Leather Dress Shoes",
+    "description": "Classic formal leather oxford shoes for business attire.",
+    "brand": "Camden & Co",
+    "category": "Footwear",
+    "price": 149.99,
+    "attributes": {"color": "brown"}
+  },
+  {
+    "sku": "BAG-005",
+    "title": "Waterproof Hiking Backpack 40L",
+    "description": "Durable waterproof backpack with hydration sleeve, ideal for multi-day hikes.",
+    "brand": "TrailPeak",
+    "category": "Bags",
+    "price": 109.99,
+    "attributes": {"capacity": "40L"}
+  }
+]

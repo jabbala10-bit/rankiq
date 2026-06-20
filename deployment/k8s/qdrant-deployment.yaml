@@ -1,0 +1,56 @@
+# Optional: only needed if VECTOR_BACKEND=qdrant is selected (ADR-001).
+# Not applied if running with FAISS (no server) or pgvector (separate
+# Postgres deployment, not shown here — use a managed Postgres with the
+# pgvector extension enabled, or add a StatefulSet analogous to
+# StreamGuardIQ's Kafka one if self-hosting).
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rankiq-qdrant
+spec:
+  serviceName: rankiq-qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rankiq-qdrant
+  template:
+    metadata:
+      labels:
+        app: rankiq-qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.11.3
+          ports:
+            - containerPort: 6333
+          volumeMounts:
+            - name: qdrant-data
+              mountPath: /qdrant/storage
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+  volumeClaimTemplates:
+    - metadata:
+        name: qdrant-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rankiq-qdrant
+spec:
+  selector:
+    app: rankiq-qdrant
+  ports:
+    - port: 6333
+      targetPort: 6333
+  clusterIP: None

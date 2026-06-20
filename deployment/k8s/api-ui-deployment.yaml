@@ -1,0 +1,156 @@
+# RankIQ — Kubernetes manifests for the API and UI tiers.
+#
+# The API tier is stateless with respect to vector search infrastructure
+# — it delegates to whichever VectorStore backend is configured (ADR-001)
+# — so it scales horizontally without the SQLite-single-writer caveats
+# StreamGuardIQ's consumer tier carries. The product catalog itself
+# (SQLite) remains single-instance here for the same reasons outlined in
+# StreamGuardIQ's ADR-006; a production deployment with multiple API
+# replicas should migrate the catalog store to Postgres (which, notably,
+# could be the *same* Postgres instance already running for the
+# pgvector backend, if that's the selected VectorBackend).
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rankiq-api
+  labels:
+    app: rankiq-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rankiq-api
+  template:
+    metadata:
+      labels:
+        app: rankiq-api
+    spec:
+      containers:
+        - name: api
+          image: rankiq-api:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+            - name: VECTOR_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  name: rankiq-config
+                  key: vector-backend
+            - name: QDRANT_URL
+              value: "http://rankiq-qdrant:6333"
+            - name: PGVECTOR_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: rankiq-secrets
+                  key: pgvector-dsn
+                  optional: true
+            - name: SQLITE_PATH
+              value: "/app/data/rankiq.db"
+            - name: API_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rankiq-secrets
+                  key: api-auth-token
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: rankiq-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rankiq-api
+spec:
+  selector:
+    app: rankiq-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rankiq-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rankiq-config
+data:
+  vector-backend: "faiss"  # faiss | qdrant | pgvector — see ADR-001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rankiq-ui
+  labels:
+    app: rankiq-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rankiq-ui
+  template:
+    metadata:
+      labels:
+        app: rankiq-ui
+    spec:
+      containers:
+        - name: ui
+          image: rankiq-ui:latest
+          ports:
+            - containerPort: 7860
+          env:
+            - name: RANKIQ_API_URL
+              value: "http://rankiq-api:8000"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rankiq-ui
+spec:
+  selector:
+    app: rankiq-ui
+  ports:
+    - port: 7860
+      targetPort: 7860
+  type: LoadBalancer
